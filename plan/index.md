@@ -29,7 +29,7 @@
 
 ## 3. Phased Implementation Roadmap (Post-Planning)
 
-### Phase 0: Advance Planning & Spec Freeze (Current — v3.2 Baseline)
+### Phase 0: Advance Planning & Spec Freeze (Current — v3.3 Baseline)
 - [x] Rename CLI to `packx` and UI schema format from `.nes` to `.pxs` (PackageX Schema).
 - [x] Define `packx toolbelt`, blocking OS lockfile, atomic CAS extraction, `--offline` / `.pxbelt`, and 32-char SHA-256 ref-counting.
 - [x] Shift runtime/stub from `no_std` to size-optimized standard Rust + audited crate SIMD ASM; shift `.s.px` default to WASM-first (`wasmi`).

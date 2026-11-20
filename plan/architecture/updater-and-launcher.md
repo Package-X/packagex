@@ -17,6 +17,10 @@ Instead of locking developers into a single rigid manifest schema, `[updater]` p
 ## 2. Security Enforcement: Dev Warning vs. Production Hard-Stop
 
 - **Production (`packx build`):** **Hard-stops** if the updater URL is not HTTPS, lacks a `sha256_path` (`"sha": "<SHA256>"`) mapping, or lacks a pinned **Ed25519 public key** / Local CA certificate thumbprint embedded into `update.exe` at build time.
+- **Feed Authenticity, Expiry, Key Rotation & Anti-Downgrade:** Signed production update feeds MUST verify:
+	- **Detached Ed25519 Signature + `key_id`:** Supports embedding a primary + next rotation public key (`key_id`) so keys rotate cleanly without stranding older installs.
+	- **Freshness (`expires_at`):** UTC ISO-8601 expiry timestamp rejecting stale or frozen replayed manifests.
+	- **Monotonic Anti-Downgrade:** `update.exe` refuses any version lower than the currently installed SemVer (blocking rollback-to-vulnerable-version attacks) unless a signed `allow_downgrade = true` emergency directive is present.
 - **Dev / Sandbox (`packx test`):** Prints a clear warning (`"Updater URL is not secured — sign updates and include a sha field for production"`) and continues cleanly for local iteration.
 
 ## 3. White-Label Launcher Shim & Custom Launcher Sandbox Probe

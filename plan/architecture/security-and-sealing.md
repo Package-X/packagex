@@ -8,7 +8,10 @@ Never encrypt files one-by-one inside a readable ZIP/tar—that leaks folder tre
 
 1. **Single-Blob Pack First:** Deterministically pack and `zstd`-compress all payload files, `.s.px` bytecode, and the internal file manifest into one contiguous stream.
 2. **Random Master Payload Key (DEK):** Generate a fresh 256-bit random Data Encryption Key (DEK) at build time.
-3. **Chunked AEAD Encryption:** Encrypt the entire compressed blob in streaming 64 KiB chunks using **`XChaCha20-Poly1305`** (or `AES-256-GCM`) via [`RustCrypto/AEADs`](https://github.com/rustcrypto/aeads). AEAD ciphertext is mathematically indistinguishable from uniform random noise—opening the installer in 7-Zip, `strings`, or a hex editor reveals zero filenames, zero folders, and zero readable text.
+3. **Formal Chunked AEAD Wire Format (`PKX_SEAL_V1` — `XChaCha20-Poly1305` Only):**
+	- **Single Cipher Standard:** Standardize strictly on **`XChaCha20-Poly1305`** (192-bit nonce, constant-time software speed without requiring AES-NI) via [`RustCrypto/AEADs`](https://github.com/rustcrypto/aeads).
+	- **Header & Slot Framing:** Magic `PKX_SEAL_V1` + format version + Argon2id params (`m_cost`, `t_cost`, `p_cost`, 16-byte salt) + 24-byte `base_nonce` + key slots (each slot carries slot type, KDF/X25519 ephemeral pubkey, and AEAD-wrapped 32-byte DEK).
+	- **Per-Chunk Nonce & Truncation/Reorder Protection:** The compressed payload is split into 64 KiB chunks indexed `0..N-1`. Each chunk derives `chunk_nonce = base_nonce XOR little_endian_u64(chunk_index)` and binds **`AAD = SHA256(header_bytes) || chunk_index || is_final_chunk (u8)`**. Any reordered, dropped, modified, or truncated chunk fails Poly1305 authentication immediately before touching disk.
 4. **Independent Key Slots (Zero Payload Duplication, ~100 Bytes/Slot):**
 	- **Slot 0 (Primary Password):** Wraps the 32-byte DEK using **`Argon2id`** (memory-hard KDF, e.g., 64–128 MiB RAM, 3–4 iterations) via [`RustCrypto/password-hashes`](https://github.com/RustCrypto/password-hashes). Never store the password or a password hash in the binary.
 	- **Slot 1 (Optional Recovery Slot — `[security].recovery`):**
@@ -29,7 +32,7 @@ Random salts and nonces change the binary SHA-256 on every build. `packx check` 
 
 | Scenario | Protection Guarantee |
 | :--- | :--- |
-| **Static RE (No Password)** — Disassembling `px-stub` in Ghidra/IDA, `strings`, 7-Zip, hex editor | **Practically uncrackable.** Disassembling `px-stub` exposes only the decryption algorithm, never the key or password. Argon2id + XChaCha20-Poly1305 with a strong company passphrase prevents offline extraction. |
+| **Static RE (No Password)** — Disassembling `px-stub` in Ghidra/IDA, `strings`, 7-Zip, hex editor | **Computationally infeasible offline** under a high-entropy passphrase/recovery key and memory-hard Argon2id parameters. Disassembling `px-stub` reveals only the cipher and header layout, never the DEK or password. |
 | **Dynamic RE (Authorized User With Password)** — Debugger attached after valid unlock | Once a valid password is entered and files are installed, decrypted files exist on that authorized machine. Password sealing protects the **installer package in transit and at rest**, not post-install memory on an already-authorized host. |
 
 ## 3. Free Local Company Signing (`packx sign init-ca`)
@@ -38,7 +41,7 @@ High-entropy encrypted `.exe` overlays trigger Windows Defender / SmartScreen he
 
 1. **Zero-Cost Local CA Generation:** `packx sign init-ca --org "Kastrick Internal"` uses [`rcgen`](https://github.com/rustls/rcgen) to generate a private Root CA + Code Signing certificate offline ($0).
 2. **Cross-OS Signing:** `packx build --sign --ca ./internal-ca` signs the `.exe` / `.msi` / `.msix` using [`osslsigncode`](https://github.com/mtrojnar/osslsigncode) or `signtool`.
-3. **Legitimate Enterprise Trust (No Sketchy Bypasses):** PackageX never attempts to illegally bypass SmartScreen on untrusted public PCs. Instead, company IT deploys the single public Root CA `.cer` to **Trusted Root Certification Authorities** via Active Directory GPO or Microsoft Intune—making every PackageX-signed internal installer 100% natively trusted by Windows and SmartScreen across the company for $0.
+3. **Legitimate Enterprise Trust (Authenticode + SmartScreen Boundary):** PackageX never attempts to bypass SmartScreen on untrusted public PCs. Deploying the private Root CA `.cer` via Active Directory GPO or Microsoft Intune establishes **Windows Authenticode signature trust** ($0), while **Microsoft Defender SmartScreen** evaluates publisher/file reputation independently—so enterprise IT pairs the private Root CA with **WDAC / AppLocker / Defender for Endpoint certificate allow-listing** (or internal trusted-zone policies) to prevent SmartScreen prompts on new internal builds.
 
 ## 4. White-Label End-User Stealth Rules
 

@@ -5,7 +5,7 @@
 Custom installers must never leave behind half-extracted files, orphaned services, or corrupted `$PATH` entries. `px-runtime` uses a **same-volume two-phase transactional staging model** across Windows, macOS, and Linux:
 
 1. **Same-Volume Stage & Verify (Prevents `EXDEV`):** Extract and decompress all payload files into a hidden sibling staging folder on the **exact same filesystem/volume as `$instdir$`** (e.g., `<parent_of_instdir>/.stage-<app_id>-<session_id>/`—never cross-volume from `$temp$`), and verify every file against its compile-time SHA-256 hash.
-2. **Atomic Commit + Reverse Journal:** Atomically rename staged files into `$instdir$` and apply OS mutations (registry/plists, `$PATH`, services/daemons, shortcuts), recording pre-mutation snapshots in an app-scoped append-only journal (`.journal-<app_id>-<session_id>.log`—no `px-` prefix).
+2. **Single Atomic Directory Swap + Crash-Recovery Journal:** Rather than renaming files individually (which is not atomic across power loss), `px-runtime` writes a durable `COMMITTING` checkpoint to `.journal-<app_id>-<session_id>.log` (`sync_all`), swaps the **entire staged directory** (`.stage-<app_id>-<session_id>/` -> `$instdir$` or atomic `current/` junction/symlink flip, moving any prior install to `.backup-<app_id>-<id>/`), then applies OS mutations (`$PATH`, services, shortcuts) and marks `COMMITTED`. If power loss or process termination interrupts mid-commit, the next launch detects the incomplete journal and cleanly finishes rollback or recovery.
 
 | Action Type | Pre-Mutation Snapshot Saved | Rollback Operation (Reverse Order) |
 | :--- | :--- | :--- |
@@ -52,7 +52,9 @@ While `-packagex-detail` inspects the **package itself**, `--dry-run` evaluates 
 ## 5. Dependency Check & Remote Bootstrapper Engine
 
 1. **Version Detection:** Runs `check_cmd` hidden (no console flash), parses SemVer via [`semver`](https://github.com/dtolnay/semver), and compares against `min_version`.
-2. **Secure Download & Execution (`on_missing`):**
+2. **External Side-Effect Boundary (`on_missing` & `--dry-run`):**
+	- Third-party dependency installers (`python.exe`, `node.msi`) run outside PackageX's transactional sandbox and **cannot be rolled back** by `px-runtime`. `-packagex-detail` and `--dry-run` explicitly tag every `on_missing` step as **`[External / Non-Rollbackable]`**, and `--dry-run` permits only read-only `check_cmd` probes.
+3. **Secure Download & Execution (`on_missing`):**
 	- Enforces HTTPS unless `allow_insecure_http = true`.
 	- Streams downloads via [`ureq`](https://github.com/algesten/ureq) with live UI progress and validates mandatory 64-char `sha256` pins when `reproducible = true`.
 	- Dispatches OS-scoped bootstrappers, refreshes process `$PATH`, and re-verifies `check_cmd`.

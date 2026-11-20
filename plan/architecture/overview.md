@@ -17,7 +17,17 @@ An installer runtime that performs HTTPS TLS downloads (`on_missing`), streaming
 - Because stubs are pre-compiled, **end-users running `packx build` on Windows or Linux never need Xcode or a Mac** to assemble, sign, and notarize macOS installers.
 - During `packx build`, `px-assembler` compiles `.px`, `.pxs` UI schemas, and `<name>.s.px` WASM hooks, packs payload files deterministically (`zstd`), optionally wraps the blob in AEAD password sealing, and emits native OS packages or self-contained overlay installers in seconds.
 
-## 2. Planned Cargo Workspace Structure
+## 2. Three-Repository Organization & Crate Ownership
+
+PackageX is split across three repositories under [`github.com/package-x`](https://github.com/package-x) with an explicit license and protocol boundary (`shim_protocol = 1` between `packx` and `packx-core`):
+
+| Repository | License | Responsibility & Crates |
+| :--- | :--- | :--- |
+| **`package-x/packx`** | MIT | Permanent thin `$PATH` CLI shim (`px-shim`), blocking `toolbelt.lock` router (`px-toolbelt`), and global OS keyring signing config (`packx config --set-signkey`). |
+| **`package-x/packagex`** | Apache-2.0 | Architecture specs (`/plan/`), core CLI (`px-cli`), `.px` parser/linter (`px-spec`), `.s.px` WASM compiler (`px-script`), AEAD crypto/local CA (`px-crypto`), `.pxs` UI compiler & bridge (`px-ui-compiler`, `px-ui-bridge`), assembler (`px-assembler`), runtime (`px-runtime`), and `px-stub`. |
+| **`package-x/sdk`** | MIT *(with isolated `vendor/` MPL-2.0)* | Tiny (~3–8 MB `zstd`) pure-Rust target sub-belt binaries, pre-compiled CI stubs, belt `manifest.json` index + 64-char SHA-256 checksums, and credited MPL-2.0 vendored macOS crates (`apple-codesign`, `apple-dmg`, `apple-flat-package`). |
+
+### Core Engine Workspace Layout (`package-x/packagex`)
 
 ```text
 PackageX/

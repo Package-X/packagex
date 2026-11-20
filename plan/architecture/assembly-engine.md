@@ -11,6 +11,7 @@ Running `packx build` on two different machines or OSs with the same `.px` manif
 2. **Frozen Timestamps:** Embedded file modification timestamps are clamped to `0` (Unix epoch) or `SOURCE_DATE_EPOCH`—never wall-clock build time.
 3. **Relative Paths Only:** All internal paths are normalized to forward-slash relative paths (`bin/app.exe`); absolute host paths are stripped.
 4. **Mandatory `sha256` Pins on Remote Dependencies:** When `reproducible = true`, `packx check` requires a 64-char `sha256` pin on every `on_missing` URL (unless `--allow-unpinned-deps` is explicitly passed).
+5. **Pinned Build Toolchain Inputs:** Every toolbelt release pins exact `rustc` version, target triple, `Cargo.lock`, `libzstd` version, and pre-compiled `px-stub` SHA-256 digests in `manifest.json` so reproducibility holds across hosts.
 
 Additionally, `px-assembler` embeds a per-file SHA-256 manifest (using [`RustCrypto/hashes`](https://github.com/rustcrypto/hashes) / [`blake3`](https://github.com/BLAKE3-team/BLAKE3)) plus exact compressed size and compile-time estimated uncompressed install size.
 

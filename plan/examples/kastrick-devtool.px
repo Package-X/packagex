@@ -38,7 +38,7 @@ ui_state = "installing_dependency"
 
 [assembly.windows.steps.on_missing]
 url = "https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "<REPLACE_WITH_REAL_64_CHAR_SHA256>"
 run_as = "exe"
 args = ["/quiet", "InstallAllUsers=0", "PrependPath=1"]
 
@@ -54,7 +54,7 @@ ui_state = "installing_dependency"
 
 [assembly.windows.steps.on_missing]
 url = "https://nodejs.org/dist/v22.0.0/node-v22.0.0-x64.msi"
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+sha256 = "<REPLACE_WITH_REAL_64_CHAR_SHA256>"
 run_as = "msi"
 args = ["/qn"]
 

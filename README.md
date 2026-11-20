@@ -4,7 +4,7 @@
 
 PackageX builds native, white-labeled installers for **all modern operating systems**—Windows (`.exe`, `.msi`, `.msix`, WinGet), macOS (`.pkg`, `.dmg`, Homebrew Cask), and Linux (`.deb`, `.rpm`, `AppImage`, `Flatpak`)—from a single declarative `.px` manifest, outclassing legacy script-heavy builders and Windows-only packagers like Master Packager Dev (MPDEV).
 
-> **Project Status:** **Advance Planning Phase (v3.2 Spec Baseline).** No `.rs` implementation code is present yet. All architectural blueprints, binary format specifications, `packx toolbelt` CAS SDK designs, AEAD password sealing & recovery-slot specs, Rust crate mappings, `.pxs` UI contracts, `.s.px` WASM scripting specs, and standardized exit codes live inside `/plan/`.
+> **Project Status:** **Advance Planning Phase (v3.3 Spec Baseline).** No `.rs` implementation code is present yet. All architectural blueprints, binary format specifications, `packx toolbelt` CAS SDK designs, AEAD password sealing & recovery-slot specs, Rust crate mappings, `.pxs` UI contracts, `.s.px` WASM scripting specs, and standardized exit codes live inside `/plan/`.
 
 ## Core Capabilities (Planned)
 

@@ -2,7 +2,7 @@
 
 ## 1. Motivation: Reproducible Cross-OS Builds Without Version Drift
 
-If a developer on Linux has `packx 2.3` installed while a teammate on Windows has `packx 2.4`, building the same `.px` project without engine isolation breaks **reproducible builds** and causes subtle SDK mismatches. At the same time, bundling gigabytes of Windows, macOS, and Linux native SDKs into a single installer makes the CLI unnecessarily heavy.
+If a developer on Linux has `packx 2.3` installed while a teammate on Windows has `packx 2.4`, building the same `.px` project without engine isolation breaks **reproducible builds** and causes subtle SDK mismatches. At the same time, shipping every target OS packager and pre-compiled stub inside the `packx` shim binary would bloat the CLI unnecessarily.
 
 PackageX solves both problems by separating the **thin `packx` shim** from **versioned toolbelt engines**, **modular target sub-belts**, a **kernel-managed blocking lockfile**, and a **Content-Addressed Storage (CAS) SDK pool**.
 
@@ -78,7 +78,7 @@ Fix: Run `packx belt add 2.4/x86_64-windows` online, or import a .pxbelt bundle.
 
 ## 6. Component-Level CAS SDK Pool (32-Char SHA-256 + Delta Installs)
 
-To prevent version collisions without duplicating 400+ MB SDKs:
+To prevent version collisions while keeping target sub-belts tiny (**~3–8 MB** `zstd` pure-Rust packager + pre-built stub archives published from `package-x/sdk` GitHub Releases, with zero 400+ MB C/C++ sysroots):
 - **Folder Name:** `<32-char-sha256-prefix>_<component>` (128 bits of entropy—eliminates collisions while halving path length to avoid Windows' 260-character `MAX_PATH` limit).
 - **Manifest Verification:** Each toolbelt's `manifest.json` stores the **full 64-character SHA-256** digest for every component; integrity checks always verify all 64 characters.
 - **Delta Installs:** Adding `2.4` on a machine with `2.3` skips unchanged hashes (appending `"2.4"` to `owners` and flipping `mode` to `"shared"`) and downloads only changed modules.
