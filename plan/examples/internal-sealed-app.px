@@ -1,0 +1,62 @@
+# Reference Internal Company Manifest (.px) — Password-Sealed + Local CA
+# Demonstrates AEAD single-blob password sealing (Argon2id + XChaCha20-Poly1305),
+# Company X25519 Recovery Key Slot, free Local Company CA signing (GPO/Intune),
+# white-label uninstaller footprint, and `elevate = false` CLI deployment.
+
+[package]
+name = "KastrickInternalOps"
+version = "2.1.0"
+engine = "2.4"
+publisher = "Kastrick"
+app_id = "com.kastrick.internal.ops"
+template = "cli-path-app"
+scope = "user"
+elevate = false
+targets = ["exe", "appimage"]
+bin_exports = ["bin/kops"]
+
+[assembly]
+install_dir = "$appdata$/local/kastrick_internal/ops/*"
+allow_user_dir_override = false
+add_to_path = ["$instdir$/bin"]
+compression = "zstd"
+compression_level = 19
+reproducible = false                 # Disabled automatically when AEAD password sealing is active
+generate_sbom = "cyclonedx"
+
+[security]
+encryption = "password"              # Single-blob Argon2id + XChaCha20-Poly1305 (unreadable noise at rest)
+recovery = "pubkey"                  # Slot 1 wraps DEK to IT's offline X25519 master public key
+recovery_pubkey = "./keys/company-recovery.pub"
+recovery_contact = "Contact Kastrick IT Helpdesk (#it-ops) for a recovery unlock."
+
+[[assembly.steps]]
+id = "extract-cli"
+phase = "install"
+label = "Extracting internal CLI binaries"
+type = "extract"
+source = "./dist/kops/**"
+target = "$instdir$"
+weight = 80
+ui_state = "extracting_files"
+
+[[assembly.steps]]
+id = "configure-cli"
+phase = "post"
+label = "Registering kops on user PATH"
+type = "script"
+entry = "./setup.s.px"
+compile_mode = "wasm"
+weight = 20
+ui_state = "updating_path"
+
+[ui]
+mode = "schema"
+entry = "./wizard.pxs"
+theme = "winlook.dark"
+winlook_backend = "win10"
+headless_fallback = "tui"
+window_size = [680, 460]
+
+[signing]
+windows = "local-ca"                 # Free offline Root CA via `packx sign init-ca` (trusted via GPO/Intune)

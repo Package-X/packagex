@@ -1,0 +1,21 @@
+# setup.s.px — Reference PackageX WASM-First Script (Python-like syntax)
+# Compiled by `px-script` into deterministic WebAssembly bytecode executed inside
+# `px-stub` via `wasmi`. Every `packx.*` SDK mutation is automatically tracked by
+# the Atomic Rollback Journal (or captured in `simulated-mutations.json` under `packx test`).
+
+def main():
+	# Log target platform details to the installer UI and JSON install log
+	os_name = packx.os.name()
+	arch = packx.os.arch()
+	packx.log.info(f"Configuring KastrickDevTool for {os_name} ({arch})")
+
+	# Ensure the user config and binary directories exist safely
+	packx.ui.set_progress(85, "Creating runtime directories...")
+	packx.fs.ensure_dir("$instdir$/bin")
+	packx.fs.ensure_dir("$appdata$/kastrick-devtool")
+
+	# Register the binary directory on the user's PATH across Windows, macOS, or Linux
+	packx.ui.set_progress(95, "Registering CLI binaries on PATH...")
+	packx.env.add_path("$instdir$/bin")
+
+	packx.log.info("Runtime configuration complete.")

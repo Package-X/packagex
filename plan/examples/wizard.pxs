@@ -1,0 +1,265 @@
+{
+	"$schema": "https://kastrick.dev/schemas/packagex-pxs-ui-v1.json",
+	"engine": "packagex-schema",
+	"target": "cross-os.native",
+	"windowsBackend": "winlook.wl_ui",
+	"theme": "winlook.dark",
+	"headlessFallback": "tui",
+	"window": {
+		"title": "{{package.name}} Setup",
+		"width": 680,
+		"height": 460,
+		"resizable": false
+	},
+	"stateBindings": {
+		"password_prompt": "PasswordPage",
+		"welcome": "WelcomePage",
+		"checking_env": "ProgressPage",
+		"installing_dependency": "ProgressPage",
+		"extracting_files": "ProgressPage",
+		"updating_path": "ProgressPage",
+		"rolling_back": "ProgressPage",
+		"error_rolled_back": "ErrorPage",
+		"finished": "FinishPage"
+	},
+	"screens": {
+		"PasswordPage": {
+			"layout": "Column",
+			"padding": 24,
+			"gap": 16,
+			"children": [
+				{
+					"component": "Heading",
+					"props": {
+						"level": 1,
+						"text": "Unlock {{package.name}} Setup"
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"text": "This installer is sealed. Enter the installation password or switch to a recovery key."
+					}
+				},
+				{
+					"component": "PasswordInput",
+					"props": {
+						"label": "Password / Recovery Key",
+						"bind": "security.unlock_secret"
+					}
+				},
+				{
+					"component": "Checkbox",
+					"props": {
+						"label": "Use Recovery Key instead of primary password",
+						"bind": "security.use_recovery_slot",
+						"default": false
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"bind": "security.recovery_contact"
+					}
+				},
+				{
+					"component": "Row",
+					"align": "end",
+					"gap": 12,
+					"children": [
+						{
+							"component": "Button",
+							"props": {
+								"label": "Cancel",
+								"action": "exit"
+							}
+						},
+						{
+							"component": "Button",
+							"props": {
+								"label": "Unlock",
+								"variant": "primary",
+								"action": "submit_unlock"
+							}
+						}
+					]
+				}
+			]
+		},
+		"WelcomePage": {
+			"layout": "Column",
+			"padding": 24,
+			"gap": 16,
+			"children": [
+				{
+					"component": "Heading",
+					"props": {
+						"level": 1,
+						"text": "Install {{package.name}} v{{package.version}}"
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"text": "Published by {{package.publisher}}. Estimated disk space: {{assembly.estimated_size_human}}."
+					}
+				},
+				{
+					"component": "DirectoryPicker",
+					"props": {
+						"label": "Installation Directory",
+						"bind": "assembly.install_dir",
+						"enabled": "{{assembly.allow_user_dir_override}}"
+					}
+				},
+				{
+					"component": "Checkbox",
+					"props": {
+						"label": "Add bin directory to User $PATH",
+						"bind": "assembly.add_to_path_enabled",
+						"default": true
+					}
+				},
+				{
+					"component": "Row",
+					"align": "end",
+					"gap": 12,
+					"children": [
+						{
+							"component": "Button",
+							"props": {
+								"label": "Cancel",
+								"action": "exit"
+							}
+						},
+						{
+							"component": "Button",
+							"props": {
+								"label": "Install",
+								"variant": "primary",
+								"action": "start_install"
+							}
+						}
+					]
+				}
+			]
+		},
+		"ProgressPage": {
+			"layout": "Column",
+			"padding": 24,
+			"gap": 16,
+			"children": [
+				{
+					"component": "Heading",
+					"props": {
+						"level": 2,
+						"text": "Installing {{package.name}}..."
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"bind": "runtime.current_step_label"
+					}
+				},
+				{
+					"component": "ProgressBar",
+					"props": {
+						"bind": "runtime.progress_percent",
+						"min": 0,
+						"max": 100
+					}
+				},
+				{
+					"component": "LogViewer",
+					"props": {
+						"bind": "runtime.log_lines",
+						"height": 180
+					}
+				},
+				{
+					"component": "Row",
+					"align": "end",
+					"children": [
+						{
+							"component": "Button",
+							"props": {
+								"label": "Cancel",
+								"action": "cancel_install"
+							}
+						}
+					]
+				}
+			]
+		},
+		"ErrorPage": {
+			"layout": "Column",
+			"padding": 24,
+			"gap": 16,
+			"children": [
+				{
+					"component": "Heading",
+					"props": {
+						"level": 2,
+						"text": "Installation Failed (Changes Rolled Back)"
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"bind": "runtime.error_message"
+					}
+				},
+				{
+					"component": "Row",
+					"align": "end",
+					"children": [
+						{
+							"component": "Button",
+							"props": {
+								"label": "Close",
+								"variant": "primary",
+								"action": "exit"
+							}
+						}
+					]
+				}
+			]
+		},
+		"FinishPage": {
+			"layout": "Column",
+			"padding": 24,
+			"gap": 16,
+			"children": [
+				{
+					"component": "Heading",
+					"props": {
+						"level": 1,
+						"text": "{{package.name}} Installed Successfully"
+					}
+				},
+				{
+					"component": "Text",
+					"props": {
+						"text": "Installed to {{assembly.install_dir}} and registered in PATH. Open a new terminal window to use CLI commands."
+					}
+				},
+				{
+					"component": "Row",
+					"align": "end",
+					"gap": 12,
+					"children": [
+						{
+							"component": "Button",
+							"props": {
+								"label": "Finish",
+								"variant": "primary",
+								"action": "exit"
+							}
+						}
+					]
+				}
+			]
+		}
+	}
+}

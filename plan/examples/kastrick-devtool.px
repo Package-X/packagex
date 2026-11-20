@@ -1,0 +1,100 @@
+# Reference Cross-OS PackageX Manifest (.px) — v3 Spec
+# Demonstrates engine pinning, explicit `elevate = false`, OS-namespaced steps
+# with `phase` ordering, mandatory `sha256` pins under `reproducible = true`,
+# `.pxs` UI, and WASM-first `<name>.s.px` Hook SDK scripting.
+
+[package]
+name = "KastrickDevTool"
+version = "1.0.0"
+engine = "2.4"
+publisher = "Kate-alt-69"
+app_id = "com.kastrick.devtool"
+template = "hybrid-app"
+scope = "user"
+elevate = false
+targets = ["exe", "msi", "dmg", "pkg", "deb", "appimage"]
+app_exe = "bin/kastrick-devtool"
+bin_exports = ["bin/kastrick-devtool", "bin/kdt"]
+
+[assembly]
+install_dir = "$appdata$/local/kastrick_examples/software/*"
+allow_user_dir_override = true
+add_to_path = ["$instdir$/bin"]
+compression = "zstd"
+compression_level = 19
+reproducible = true
+generate_sbom = "cyclonedx"
+
+# --- Windows-Only Pre-Install Dependencies ---
+[[assembly.windows.steps]]
+id = "check-python"
+phase = "pre"
+label = "Checking Python 3.12+ environment"
+type = "dependency"
+check_cmd = "python --version"
+min_version = "3.12.0"
+weight = 30
+ui_state = "installing_dependency"
+
+[assembly.windows.steps.on_missing]
+url = "https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+run_as = "exe"
+args = ["/quiet", "InstallAllUsers=0", "PrependPath=1"]
+
+[[assembly.windows.steps]]
+id = "check-node"
+phase = "pre"
+label = "Checking Node.js 22+ runtime"
+type = "dependency"
+check_cmd = "node -v"
+min_version = "22.0.0"
+weight = 30
+ui_state = "installing_dependency"
+
+[assembly.windows.steps.on_missing]
+url = "https://nodejs.org/dist/v22.0.0/node-v22.0.0-x64.msi"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+run_as = "msi"
+args = ["/qn"]
+
+# --- Cross-OS General Steps (Strictly OS-Agnostic) ---
+[[assembly.steps]]
+id = "extract-app"
+phase = "install"
+label = "Extracting KastrickDevTool binaries"
+type = "extract"
+source = "./dist/bin/**"
+target = "$instdir$"
+weight = 25
+ui_state = "extracting_files"
+
+[[assembly.steps]]
+id = "configure-runtime"
+phase = "post"
+label = "Configuring cross-OS runtime & PATH"
+type = "script"
+entry = "./setup.s.px"
+compile_mode = "wasm"
+weight = 15
+ui_state = "updating_path"
+
+[ui]
+mode = "schema"
+entry = "./wizard.pxs"
+theme = "winlook.dark"
+winlook_backend = "win10"
+headless_fallback = "tui"
+window_size = [680, 460]
+
+[updater]
+enabled = true
+feed_url = "https://releases.kastrick.dev/devtool/update-feed.json"
+version_path = "$.release.version"
+version_regex = "^v?(\\d+\\.\\d+(?:\\.\\d+)?)$"
+priority_path = "$.release.priority"
+download_url_path = "$.release.url"
+sha256_path = "$.release.sha"
+delta_patching = "zstd"
+launcher = "auto"
+check_interval_hours = 24
