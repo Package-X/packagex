@@ -69,7 +69,7 @@ Running `packx build msi --silent --offline` when the required engine or sub-bel
 ```text
 Error: Requires packx 2.4 (Belt_x86_64-windows), found 2.3.
 Reason: Offline mode enabled — cannot fetch from network.
-Fix: Run `packx toolbelt install --required 2.4/x86_64-windows` online, or import a .pxbelt bundle.
+Fix: From the project directory, run `packx toolbelt install --required` online, or import the project's required `.pxbelt` bundle.
 ```
 
 ### Portable `.pxbelt` Export / Import

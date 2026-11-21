@@ -42,7 +42,7 @@ Exits with canonical code `13`:
 ```text
 Error: Requires packx 2.4 (Belt_x86_64-windows), found 2.3.
 Reason: Offline mode enabled — cannot fetch from network.
-Fix: Run `packx belt add 2.4/x86_64-windows` online, or import a .pxbelt bundle.
+Fix: From the project directory, run `packx toolbelt install --required` online, or import the project's required `.pxbelt` bundle.
 ```
 
 ## 2. Supported Runtime Flags on Assembled Installers
