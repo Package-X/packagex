@@ -1,19 +1,20 @@
 # Rust Crate Pile, Vendored SDK Strategy & Target Capability Matrix
 
-PackageX builds *on top of* battle-tested Rust crates and SDK tools rather than reinventing binary container formats from scratch, reserving custom engineering for the unified `.px` IR, CAS toolbelt, rollback runtime, `.pxs` UI compiler, and AEAD sealing layer.
+PackageX builds *on top of* battle-tested Rust crates and SDK tools rather than reinventing binary container formats from scratch. The Engine owns the unified `.px` IR, build graph, rollback runtime, `.pxs` UI compiler, and AEAD sealing layer; PackX owns Toolbelt/CAS; the SDK owns target-specific format adapters and writers.
 
 ## 1. Core Rust Crate Pile by Workspace Module
 
 | PackageX Crate | Role | Recommended Rust Crates / SDKs |
 | :--- | :--- | :--- |
-| **`px-cli` & `px-shim`** | Subcommands, flags, instant shim dispatch | [`clap`](https://github.com/clap-rs/clap) (`px-cli`); keep `px-shim` minimal-dependency for instant launch. |
+| **`px-cli` (Engine)** | Project/build commands such as `build`, `check`, `test`, `init`, `preview` | [`clap`](https://github.com/clap-rs/clap); keep Engine project semantics here. |
+| **PackX shim + Toolbelt (separate repo)** | Permanent command router, Engine selection, SDK installation, signed catalog, CAS, Toolchain locks | [`ureq`](https://docs.rs/ureq/latest/ureq/), [`fs4`](https://docs.rs/fs4/latest/fs4/), [`tempfile`](https://docs.rs/tempfile/latest/tempfile/), `serde`, `semver`, and `minisign-verify` (see [PackX implementation playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md)). |
 | **`px-spec`** | `.px` TOML parsing, span-accurate `packx check` diagnostics, SemVer | [`toml` / `toml_edit`](https://github.com/toml-rs/toml) (`serde_spanned`), [`semver`](https://github.com/dtolnay/semver). |
 | **`px-toolbelt`** | CAS downloads, 64-char SHA-256 verification, blocking lockfile | [`ureq`](https://github.com/algesten/ureq) (tiny blocking HTTP/TLS, no Tokio bloat), [`RustCrypto/hashes`](https://github.com/rustcrypto/hashes), [`blake3`](https://github.com/BLAKE3-team/BLAKE3). |
 | **`px-crypto`** | Multi-Slot AEAD sealing, Argon2id KDF, RAM zeroing, local CA | [`RustCrypto/password-hashes`](https://github.com/RustCrypto/password-hashes) (`argon2`), [`RustCrypto/AEADs`](https://github.com/rustcrypto/aeads) (`chacha20poly1305`), [`RustCrypto/utils`](https://github.com/rustcrypto/utils) (`zeroize`), [`rcgen`](https://github.com/rustls/rcgen). |
 | **`px-assembler`** | Deterministic `zstd` packing, PE/ELF/Mach-O inspection, multi-OS formats | [`zstd-rs`](https://github.com/gyscos/zstd-rs), [`goblin`](https://github.com/m4b/goblin), [`cargo-packager`](https://github.com/crabnebula-dev/cargo-packager) (library/reference), [`cargo-dist`](https://github.com/axodotdev/cargo-dist/releases) (feed/CI reference). |
-| **Windows Formats & Signing** | `.msi`, cross-SDK headers, Authenticode signing | [`rust-msi`](https://github.com/mdsteele/rust-msi), [`wixtoolset/wix`](https://github.com/wixtoolset/wix) (reference), [`xwin`](https://github.com/Jake-Shadle/xwin) / [`cargo-xwin`](https://github.com/rust-cross/cargo-xwin) (model for `Belt_x86_64-windows`), [`osslsigncode`](https://github.com/mtrojnar/osslsigncode). |
+| **Windows Formats & Signing** | `.msi`, `.msix`, PE signing | [`msi`](https://docs.rs/msi/latest/msi/), [`cfb`](https://docs.rs/cfb/latest/cfb/), [`cab`](https://docs.rs/cab/latest/cab/), [Microsoft MSIX Packaging SDK](https://github.com/microsoft/msix-packaging), Windows SignTool; `osslsigncode` is optional GPL-3.0 tooling only after license review. |
 | **macOS Formats, UI & Signing** | Zero-Xcode signing/notarizing, `.dmg`, `.pkg`, AppKit UI | Vendored [`apple-codesign`](https://crates.io/crates/apple-codesign) / [`tauri-macos-sign`](https://crates.io/keywords/codesign), [`apple-dmg`](https://crates.io/crates/apple-dmg/dependencies), [`apple-flat-package`](https://docs.rs/apple-flat-package) / [`isideload-apple-flat-package`](https://crates.io/crates/isideload-apple-flat-package), [`apple-bom`](https://lib.rs/crates/apple-bom), [`objc2`](https://github.com/madsmtm/objc2). |
-| **Linux Formats & Linking** | `.deb`, `AppImage` SquashFS, older-`glibc` cross-linking | [`cargo-deb`](https://github.com/kornelski/cargo-deb), [`backhand`](https://crates.io/crates/backhand), [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild). |
+| **Linux Formats & Linking** | `.deb`, `.rpm`, AppImage, Flatpak and cross-linking | [`debian-packaging`](https://docs.rs/debian-packaging/latest/debian_packaging/), [`rpm`](https://docs.rs/rpm/latest/rpm/), [`appimagetool`](https://docs.rs/appimagetool/latest/appimagetool/), official `flatpak-builder`; [`backhand`](https://docs.rs/backhand/latest/backhand/) is for SquashFS rather than the current DWARFS AppImage path, and [`cargo-deb`](https://github.com/kornelski/cargo-deb) remains an optional Cargo-app-oriented path. |
 | **`px-script`** | `<name>.s.px` WASM execution inside `px-stub` | [`wasmi`](https://github.com/wasmi-labs/wasmi) (deterministic, security-audited Rust WebAssembly interpreter). |
 | **`px-ui-bridge`** | Native OS UIs + SSH/Docker TUI fallback | `WinLook` (`wl_ui`), [`objc2`](https://github.com/madsmtm/objc2) (AppKit), GTK4/Qt, [`ratatui`](https://github.com/ratatui/awesome-ratatui/blob/main/README.md). |
 
@@ -75,3 +76,15 @@ The table above is the high-level dependency shortlist, not proof that each cand
 - [SDK writer/transaction design](https://github.com/Package-X/sdk/blob/main/plan/architecture/writers-and-transactions.md)
 - [SDK Electron adapter](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md)
 - [PackX resolver implementation plan](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md)
+
+
+## 5. Upstream implementation detail is maintained in the SDK/PackX repositories
+
+This central table is a navigation-level shortlist. Do not treat it as a guarantee that every listed upstream supports every writer operation.
+
+- The [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md) contains API-level integration recipes for MSI/MSIX, Apple bundle/PKG/DMG/signing, DEB/RPM/AppImage/Flatpak, Electron and PDC. It records known gaps such as the apple-bom writer and the current AppImage DWARFS path.
+- The [SDK writer/transaction plan](https://github.com/Package-X/sdk/blob/main/plan/architecture/writers-and-transactions.md) defines create/inspect/modify/transform/verify capabilities and the staged MSI editing cycle.
+- The [PackX dependency/resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) defines the Rust package manager stack and install --required algorithm.
+- The [PackX package-store recovery plan](https://github.com/Package-X/packx/blob/main/plan/implementation/package-store-state-and-recovery.md) defines CAS state transitions, signed manifests, safe extraction, registration journals and leases.
+
+The SDK repository owns writer implementation details. The PackX repository owns package acquisition and Toolchain resolution. This Engine repository owns project requirements and the BuildRequest it sends to the SDK.
