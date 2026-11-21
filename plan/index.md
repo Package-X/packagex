@@ -20,7 +20,8 @@
 | [`architecture/security-and-sealing.md`](architecture/security-and-sealing.md) | Security & Sealing | Multi-Slot Envelope Encryption (`Argon2id` + `XChaCha20-Poly1305`), Recovery Key & X25519 Company Public Key slots, sealed `-packagex-detail`, local CA signing, white-label stealth |
 | [`architecture/updater-and-launcher.md`](architecture/updater-and-launcher.md) | Updater & Launcher | JSON-path + regex + SemVer updater, dev warning vs. prod hard-stop, launcher shim + spy probe, 24h schedulers |
 | [`architecture/product-and-editions.md`](architecture/product-and-editions.md) | Open-Core Editions | Free indie/OSS CLI bangers vs. paid enterprise rollouts, MDM policies, Cloud KMS, and recovery escrow |
-| [`architecture/sdk-and-crate-map.md`](architecture/sdk-and-crate-map.md) | Crate Pile & Matrix | Verified Rust crate dependencies, MPL-2.0 vendoring strategy for `apple-platform-rs` / active forks, Target Capability Matrix across all 11 formats |
+| [`architecture/sdk-and-crate-map.md`](architecture/sdk-and-crate-map.md) | Crate Pile & Matrix | Candidate dependency map, Apple vendoring/licensing and target capability matrix |
+| [`architecture/upstream-implementation-map.md`](architecture/upstream-implementation-map.md) | Upstream Implementation | Engine/SDK/PackX ownership, concrete upstream projects, format integration boundaries, POC order and limitations |
 | [`specs/px-format-spec.md`](specs/px-format-spec.md) | `.px` Manifest Spec | `elevate`, `<section>.<os>.<key>` step namespacing + `phase` ordering, `[security]`, mandatory `sha256` pins under `reproducible = true` |
 | [`specs/script-s-px-spec.md`](specs/script-s-px-spec.md) | `.s.px` Scripting Spec | Python-syntax `<name>.s.px` -> WASM-first (`wasmi`) execution, sentinel-marked `$PATH` rollback, static capability audit |
 | [`specs/ui-schema-and-winlook.md`](specs/ui-schema-and-winlook.md) | `.pxs` UI Compilation | `.pxs` native widget compiler, `password_prompt` + recovery-key toggle, CLI `$PATH` reload hint, headless `ratatui` TUI fallback |
@@ -36,6 +37,12 @@
 - [x] Specify Authenticode-safe PE footer discovery, same-volume staging, white-label end-user paths, `elevate` + `asInvoker` runtime UAC, and `packx test` Desktop sandbox.
 - [x] Specify Multi-Slot Envelope Encryption (`Argon2id` + `XChaCha20-Poly1305` + Recovery Key / X25519 slots), local CA signing (`rcgen`), Target Capability Matrix, and canonical exit codes.
 - [ ] Freeze `wl_ui` widget trait interface so PackageX can develop against a mock UI backend while WinLook completes `wl_ui`.
+
+### Implementation detail references
+
+- [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md) — concrete crate/tool APIs, writer recipes, known gaps and platform-native acceptance tests.
+- [PackX dependency and resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) — Rust package-manager dependencies and install --required execution flow.
+- [PackX package-store state/recovery](https://github.com/Package-X/packx/blob/main/plan/implementation/package-store-state-and-recovery.md) — manifest/index/lock models, extraction safety, atomic registration and crash recovery.
 
 ### Phase 1: MVP Vertical Slice (`px-spec`, `px-toolbelt`, `px-shim`, Windows `.exe` Overlay)
 - [ ] Implement `.px` parser (`toml`/`serde_spanned`), OS-namespaced step resolver, and `packx check` cross-OS linter.

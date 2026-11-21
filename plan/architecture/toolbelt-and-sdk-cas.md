@@ -37,13 +37,13 @@ PackageX solves both problems by separating the **thin `packx` shim** from **ver
 
 ## 3. Concurrency Safety: Kernel-Managed Blocking Lockfile (No Daemon Required)
 
-If two terminals or parallel CI jobs run `packx belt add` or `packx build` simultaneously, unprotected writes would corrupt `sdk_index.json` reference counts or read half-extracted SDK directories.
+If two terminals or parallel CI jobs run `packx toolbelt install --required` or `packx build` simultaneously, unprotected writes would corrupt `sdk_index.json` reference counts or read half-extracted SDK directories.
 
 Instead of running a persistent background daemon (which consumes idle RAM and risks stale sockets on crash), `px-toolbelt` uses a **kernel-managed advisory file lock** (`LockFileEx` on Windows, `flock` on Unix) on `~/.packx/toolbelt.lock`:
 
-1. **Priority Queue & Live Wait UX:** The first process acquires an exclusive lock and writes its PID and active operation (`PID 14820 | belt add 2.4/x86_64-windows`) into `toolbelt.lock`. Any second process attempting a mutating belt operation sees the active lock, prints:
+1. **Priority Queue & Live Wait UX:** The first process acquires an exclusive lock and writes its PID and active operation (`PID 14820 | belt add 2.4/x86_64-windows`) into `toolbelt.lock`. Any second process attempting a mutating toolbelt operation sees the active lock, prints:
 	```text
-	Waiting: Another belt operation is in progress (PID 14820: belt add 2.4/x86_64-windows). Waiting until it finishes...
+	Waiting: Another toolbelt operation is in progress (PID 14820: belt add 2.4/x86_64-windows). Waiting until it finishes...
 	```
 	and blocks cleanly until the first process finishes, then re-checks `sdk_index.json` (often discovering the module is now already installed!).
 2. **Crash-Proof Auto-Release:** If the first terminal crashes, is killed (`SIGKILL`), or gets `Ctrl+C`'d mid-download, the OS kernel **immediately releases the file lock**—zero zombie daemons and zero manual lockfile cleanup.
@@ -57,7 +57,7 @@ Instead of running a persistent background daemon (which consumes idle RAM and r
 1. Every `.px` manifest may pin an engine version: `engine = "2.4"`.
 2. When a user runs `packx build`, the `packx` shim checks `~/.packx/toolbelt/2.4/packx-core`.
 3. **Online Auto-Fetch:** If `2.4` is not installed and online mode is active, `packx` acquires `toolbelt.lock`, fetches the `2.4` engine + required target sub-belt via [`ureq`](https://github.com/algesten/ureq), verifies full 64-char SHA-256 digests, installs it side-by-side, and executes the build.
-4. **Independent Uninstall:** Users can run `2.3` and `2.4` side-by-side and uninstall either via `packx belt uninstall 2.3` without touching the `packx` shim or other versions.
+4. **Independent Uninstall:** Users can run `2.3` and `2.4` side-by-side and uninstall either via `packx toolbelt remove 2.3` without touching the `packx` shim or other versions.
 
 ## 5. Strict `--offline` / `--locked` Mode & `.pxbelt` Bundles
 
@@ -69,12 +69,12 @@ Running `packx build msi --silent --offline` when the required engine or sub-bel
 ```text
 Error: Requires packx 2.4 (Belt_x86_64-windows), found 2.3.
 Reason: Offline mode enabled — cannot fetch from network.
-Fix: Run `packx belt add 2.4/x86_64-windows` online, or import a .pxbelt bundle.
+Fix: Run `packx toolbelt install --required 2.4/x86_64-windows` online, or import a .pxbelt bundle.
 ```
 
 ### Portable `.pxbelt` Export / Import
-- **On an online machine:** `packx belt export 2.4/x86_64-windows -o win-2.4.pxbelt`
-- **On an air-gapped server:** `packx belt import win-2.4.pxbelt`
+- **On an online machine:** `packx toolbelt export --required 2.4/x86_64-windows -o win-2.4.pxbelt`
+- **On an air-gapped server:** `packx toolbelt import win-2.4.pxbelt`
 
 ## 6. Component-Level CAS SDK Pool (32-Char SHA-256 + Delta Installs)
 
@@ -100,5 +100,26 @@ To prevent version collisions while keeping target sub-belts tiny (**~3–8 MB**
 
 ### Immutability & Safe Uninstall Rules
 - **Read-Only Locking:** Every `shared` module directory is locked read-only immediately after atomic rename. Version-specific caches live under `~/.packx/toolbelt/<version>/`.
-- **Safe Reference-Counted Uninstall (`packx belt uninstall 2.4`):** Deletes `owner`-only modules immediately; decrements `owners` on `shared` modules and flips back to `owner` when one remains.
-- **Garbage Collection:** `packx belt prune` sweeps orphaned modules and cleans leftover `.tmp.<pid>` folders from crashed runs.
+- **Safe Reference-Counted Uninstall (`packx toolbelt remove 2.4`):** Deletes `owner`-only modules immediately; decrements `owners` on `shared` modules and flips back to `owner` when one remains.
+- **Garbage Collection:** `packx toolbelt prune` sweeps orphaned modules and cleans leftover `.tmp.<pid>` folders from crashed runs.
+
+
+## 7. Canonical CLI spelling and detailed resolver
+
+The public package-management command is packx toolbelt. Older packx belt commands in early planning examples are legacy spelling; if retained for compatibility, they must be a thin alias to the same implementation and state store, never a second manager.
+
+The user-facing minimum-install commands are:
+
+~~~powershell
+packx toolbelt install --required
+packx toolbelt install --required --nightly
+packx toolbelt install --required --nightly=a1b2c3d4
+~~~
+
+Required means the minimum complete compatible package/dependency closure requested by the selected Engine/project/target. It does not download every published OS, architecture, format or optional component.
+
+PackX asks the Engine for a machine-readable requirement graph; it does not parse full .px project semantics a second time. Exact lock and explicit pins take precedence. Stable is default. Nightly is opt-in and visibly identified by the eight-character source commit, with full commit and internal semantic-version metadata retained in the package manifest. There is no Beta channel.
+
+Authoritative implementation detail:
+- [PackX dependency and resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md)
+- [PackX package-store state and recovery](https://github.com/Package-X/packx/blob/main/plan/implementation/package-store-state-and-recovery.md)

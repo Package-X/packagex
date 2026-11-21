@@ -36,3 +36,42 @@ Because native OS packages (`.msi`, `.deb`, `.rpm`, `.pkg`, `.msix`) are execute
 | **Same-Volume Atomic Rollback** | Native | Native (`msiexec` TX) | Native (AppX) | Delegates | OS receipt | Drag-drop | Cask | OS pkg mgr | Self-contained | OSTree |
 | **`elevate = true / false`** | Native (runtime) | `ALLUSERS` property | User-scoped | Manifest scope | `install-location` | User `/Applications` | User/Admin | Root (`dpkg`/`rpm`) | User (no root) | User or system |
 | **`packx test` Desktop Sandbox** | Native | No | No | No | No | Native (mount) | No | No | Native | No |
+
+
+## 4. Implementation Feasibility and Upstream Integration Recipes
+
+The table above is the high-level dependency shortlist, not proof that each candidate implements every operation. The detailed capability recipes are maintained in the dedicated [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md).
+
+### Windows
+
+- MSI: use the Rust msi crate as the first portable database writer/editor candidate. Its API exposes read/write open, row selection/insertion/update/deletion, embedded stream operations and flush. PackageX wraps this in staged-copy editing: inspect/hash source, validate a typed change plan, copy to staging, apply supported edits, flush/close, reopen read-only, verify logical structures, then atomically publish. The Windows Installer database API remains a Windows-only backend for native transaction commit and transform behavior.
+- MSIX: use Microsoft's MSIX Packaging SDK rather than reimplementing OPC packaging and block-map generation first. It is a cross-platform native library; pack support must be explicitly enabled at build time with MSIX_PACK=on / --pack and USE_VALIDATION_PARSE=on. Signing and actual Windows deployment validation are separate stages.
+- WiX: keep it as reference/optional external backend. WiX v6/v7 commercial use may be subject to the Open Source Maintenance Fee; it must not quietly become a mandatory commercial dependency.
+- osslsigncode: useful as an optional external signing/verification adapter, but GPL-3.0 requires explicit distribution review. Prefer Windows SignTool for authoritative Windows publisher-signing tests.
+
+### macOS
+
+- Use focused apple-platform-rs crates: apple-bundles, apple-flat-package, apple-xar, apple-bom, apple-dmg, cpio-archive and apple-codesign.
+- .pkg creation has a known gap: apple-bom documentation describes BOM writing as work in progress. Prove the current writer against Apple's native package tools before advertising portable .pkg support. Until then use pkgbuild/productbuild on a macOS runner as a declared fallback, or implement only the missing BOM writer behind a dedicated adapter.
+- apple-codesign can construct/sign Mach-O and bundles and supports notarization/stapling flows, but native macOS codesign, spctl, pkgutil and actual installer tests remain the final acceptance gate. MPL-2.0 notices and file-level modification rules must be preserved.
+
+### Linux
+
+- DEB: use debian-packaging as a general-purpose Rust packaging candidate; it is MPL-2.0. cargo-deb is useful for Cargo applications but its library API is documented as experimental, so it is not automatically the generic PackageX resource-tree writer.
+- RPM: the rpm crate offers Rust programmatic package building/reading, but it does not replace rpmbuild in full or manipulate the system RPM database. Validate with the native RPM CLI and clean distro containers.
+- AppImage: evaluate appimagetool with uruntime and mkdwarfs for the current DWARFS-based path. backhand is useful for SquashFS, but it is not a drop-in replacement for a DWARFS AppImage builder.
+- Flatpak: invoke the official flatpak-builder/Flatpak toolchain in an isolated Linux worker after generating a pinned manifest; do not reimplement OSTree repository, sandbox and permission semantics.
+
+### Cross-cutting
+
+- Electron app/runtime separation belongs to the SDK's px-electron component, with @electron/get/official release artifacts for exact runtime resolution and @electron/asar when ASAR creation/extraction is required.
+- Payload deduplication can use fastcdc; compression can use streaming zstd. Pin chunker algorithm/version/parameters and codec settings; skip recompression when it does not reduce size.
+- Keep the Engine's canonical uncompressed resource inventory. SDK PDC representation is derived output and must reconstruct to original per-file hashes.
+- External builders/validators are SDK components with pinned versions, hashes, licenses and explicit install conditions; they are not ambient PATH dependencies.
+
+### Source-of-truth links
+
+- [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md)
+- [SDK writer/transaction design](https://github.com/Package-X/sdk/blob/main/plan/architecture/writers-and-transactions.md)
+- [SDK Electron adapter](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md)
+- [PackX resolver implementation plan](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md)
