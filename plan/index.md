@@ -41,7 +41,7 @@
 ### Implementation detail references
 
 - [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md) — concrete crate/tool APIs, writer recipes, known gaps and platform-native acceptance tests.
-- [PackX dependency and resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) — Rust package-manager dependencies and install --required execution flow.
+- [PackX dependency and resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) — Rust package-manager dependencies and the optional project-aware `--required` install flow.
 - [PackX package-store state/recovery](https://github.com/Package-X/packx/blob/main/plan/implementation/package-store-state-and-recovery.md) — manifest/index/lock models, extraction safety, atomic registration and crash recovery.
 
 ### Phase 1: MVP Vertical Slice (`px-spec`, `px-toolbelt`, `px-shim`, Windows `.exe` Overlay)
