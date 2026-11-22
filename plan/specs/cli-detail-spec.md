@@ -15,7 +15,8 @@
 | `packx verify <path> [--diff-show <other>]` | Cryptographically verifies signatures (Authenticode / Apple `codesign` / GPG), PE/ELF/Mach-O headers, and SHA-256 integrity on **any** binary, installer, or custom launcher—including third-party binaries not built by PackageX. Passing `--diff-show <other>` compares two builds to display added/removed/changed files and `zstd` delta savings. |
 | `packx clean` | Cleans PackageX-owned dev artifacts on the host: stale `Desktop/<package_name>/` test sandboxes, old built installers, compiled PackageX output binaries/caches, and orphaned `.tmp.<pid>` belt folders. **Never touches** language caches (Rust `target/`, Python, Node.js, Go, etc.), active toolbelts, or keyring signing keys. |
 | `packx toolbelt list` | Displays installed toolbelt engine versions (`2.3`, `2.4`) and their attached target sub-belts. |
-| `packx toolbelt install --required` | Installs a toolbelt engine and target sub-belt using blocking `toolbelt.lock` + atomic CAS delta downloads. |
+| `packx toolbelt install <package-id[@identity]> [--nightly[=<8hex>]]` | Installs the named SDK package/identity directly; `--nightly` selects the latest compatible Nightly unless an eight-character GitHub commit prefix is supplied. |
+| `packx toolbelt install --required [--project <path>] [--nightly[=<8hex>]]` | Optional project-aware mode: asks the Engine to inspect the selected `.px` project, resolves its required SDK package/dependency closure and installs missing packages using the blocking lock + atomic CAS flow. |
 | `packx toolbelt remove <package-id>` | Removes a toolbelt version and deletes `owner`-only SDK modules while preserving `shared` modules. |
 | `packx toolbelt prune` | Garbage-collects unreferenced SDK modules and leftover `.tmp.<pid>` folders. |
 | `packx toolbelt export --required -o <file>.pxbelt` | Exports a portable offline bundle for air-gapped CI/IT servers. |
@@ -26,14 +27,17 @@
 The canonical package manager namespace is packx toolbelt:
 
 ~~~powershell
+packx toolbelt install <package-id[@identity]>
+packx toolbelt install <package-id> --nightly
+packx toolbelt install <package-id> --nightly=a1b2c3d4
 packx toolbelt install --required
 packx toolbelt install --required --nightly
 packx toolbelt install --required --nightly=a1b2c3d4
 ~~~
 
-Stable is the default. Nightly is opt-in; its visible identity is nightly.<8hex_commit>, while full commit and internal semantic-version metadata are retained in the package manifest/Toolchain lock. There is no Beta channel. A missing or ambiguous Nightly prefix is a hard error and never falls back to another Nightly or Stable. Exact Toolchain pins are not rewritten by routine package updates.
+Stable is the default. Nightly is opt-in; when selected without a commit prefix, it resolves to the latest compatible Nightly. `--nightly=<8hex_commit>` selects the exact eight-character GitHub commit prefix. The visible identity is nightly.<8hex_commit>, while the verified full commit and internal semantic-version metadata are retained in the package manifest/Toolchain lock. There is no Beta channel. A missing or ambiguous prefix is a hard error and never falls back to another Nightly or Stable. Exact Toolchain pins are not rewritten by routine package updates.
 
-Required means only the minimum complete compatible dependency closure for the selected Engine, project targets and requested formats. See the [PackX required-resolution playbook](https://github.com/Package-X/packx/blob/main/plan/architecture/required-resolution.md).
+`--required` is an optional project-aware install mode, not a prerequisite for installation. It asks the Engine to inspect the selected `.px` project and resolves only the minimum complete compatible dependency closure for its targets and requested formats. See the [PackX required-resolution playbook](https://github.com/Package-X/packx/blob/main/plan/architecture/required-resolution.md).
 
 Legacy packx belt spelling, if retained, is a compatibility alias to this same manager/state store.
 
