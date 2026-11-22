@@ -37,7 +37,7 @@ PackageX solves both problems by separating the **thin `packx` shim** from **ver
 
 ## 3. Concurrency Safety: Kernel-Managed Blocking Lockfile (No Daemon Required)
 
-If two terminals or parallel CI jobs run `packx toolbelt install --required` or `packx build` simultaneously, unprotected writes would corrupt `sdk_index.json` reference counts or read half-extracted SDK directories.
+If two terminals or parallel CI jobs run a direct `packx toolbelt install <package-id>` operation, a project-aware `packx toolbelt install --required`, or `packx build` simultaneously, unprotected writes would corrupt `sdk_index.json` reference counts or read half-extracted SDK directories.
 
 Instead of running a persistent background daemon (which consumes idle RAM and risks stale sockets on crash), `px-toolbelt` uses a **kernel-managed advisory file lock** (`LockFileEx` on Windows, `flock` on Unix) on `~/.packx/toolbelt.lock`:
 
@@ -108,17 +108,20 @@ To prevent version collisions while keeping target sub-belts tiny (**~3–8 MB**
 
 The public package-management command is packx toolbelt. Older packx belt commands in early planning examples are legacy spelling; if retained for compatibility, they must be a thin alias to the same implementation and state store, never a second manager.
 
-The user-facing minimum-install commands are:
+The user-facing installation forms are:
 
 ~~~powershell
+packx toolbelt install <package-id[@identity]>
+packx toolbelt install <package-id> --nightly
+packx toolbelt install <package-id> --nightly=a1b2c3d4
 packx toolbelt install --required
 packx toolbelt install --required --nightly
 packx toolbelt install --required --nightly=a1b2c3d4
 ~~~
 
-Required means the minimum complete compatible package/dependency closure requested by the selected Engine/project/target. It does not download every published OS, architecture, format or optional component.
+A package can be installed directly by ID/identity. `--required` is optional: it asks the Engine for the selected project's machine-readable requirement graph, then installs only the minimum complete compatible package/dependency closure. It does not download every published OS, architecture, format or optional component. PackX does not parse full .px project semantics a second time.
 
-PackX asks the Engine for a machine-readable requirement graph; it does not parse full .px project semantics a second time. Exact lock and explicit pins take precedence. Stable is default. Nightly is opt-in and visibly identified by the eight-character source commit, with full commit and internal semantic-version metadata retained in the package manifest. There is no Beta channel.
+Stable is the default channel. Nightly must be selected explicitly; `--nightly` without a commit prefix means latest compatible Nightly, while `--nightly=<8hex>` selects the exact eight-character GitHub commit prefix. The full commit is verified and stored in the package manifest/Toolchain lock. Exact project pins take precedence unless deliberately changed. There is no Beta channel.
 
 Authoritative implementation detail:
 - [PackX dependency and resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md)
