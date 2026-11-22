@@ -84,7 +84,7 @@ This central table is a navigation-level shortlist. Do not treat it as a guarant
 
 - The [SDK upstream integration map](https://github.com/Package-X/sdk/blob/main/plan/implementation/upstream-integration-map.md) contains API-level integration recipes for MSI/MSIX, Apple bundle/PKG/DMG/signing, DEB/RPM/AppImage/Flatpak, Electron and PDC. It records known gaps such as the apple-bom writer and the current AppImage DWARFS path.
 - The [SDK writer/transaction plan](https://github.com/Package-X/sdk/blob/main/plan/architecture/writers-and-transactions.md) defines create/inspect/modify/transform/verify capabilities and the staged MSI editing cycle.
-- The [PackX dependency/resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) defines the Rust package manager stack and install --required algorithm.
+- The [PackX dependency/resolution playbook](https://github.com/Package-X/packx/blob/main/plan/implementation/dependency-and-resolution-playbook.md) defines the Rust package-manager stack and the optional project-aware `--required` install algorithm; direct package installs do not require that flag.
 - The [PackX package-store recovery plan](https://github.com/Package-X/packx/blob/main/plan/implementation/package-store-state-and-recovery.md) defines CAS state transitions, signed manifests, safe extraction, registration journals and leases.
 
 The SDK repository owns writer implementation details. The PackX repository owns package acquisition and Toolchain resolution. This Engine repository owns project requirements and the BuildRequest it sends to the SDK.
