@@ -9,7 +9,7 @@ PackageX should reuse mature open-source format implementations rather than rebu
 - **Engine (this repository):** project semantics, normalized build planning, resource inventory, feature lowering and orchestration.
 - **SDK:** format-specific writers/readers/validators, stubs, Electron analysis, payload transforms and build reports.
 - **PackX:** permanent CLI shim, Engine/SDK package installation, signed catalog resolution, CAS, Toolchain locks and offline bundles.
-- **PackageX Runtime:** end-user installer execution and application runtime lifecycle.
+- **Engine runtime / embedded installer helper:** end-user installation transactions, protected operation-plan verification, scope-aware writes, updater lifecycle and rollback. The helper is embedded per installer and is not a separate PackageX runtime manager.
 
 The Engine owns what a project means. The SDK owns how the selected target artifact is created or edited. PackX owns how the correct SDK package becomes available.
 
@@ -17,9 +17,9 @@ The Engine owns what a project means. The SDK owns how the selected target artif
 
 | Repository | Owns | Explicitly does not own |
 |---|---|---|
-| [packagex](https://github.com/Package-X/packagex) | .px parser/linter, project semantics, resolved build IR, resource inventory, feature lowering, build graph, orchestration, runtime and shared security policy | Global SDK package store or every native format writer |
-| [sdk](https://github.com/Package-X/sdk) | Target SDK packages, format writers/readers/validators, transactional edit adapters, Electron analysis, payload optimization and build-side reports | .px interpretation, permanent package manager or end-user installer execution |
-| [packx](https://github.com/Package-X/packx) | Permanent shim/CLI, Engine routing, SDK acquisition, signed catalog resolution, compatibility, Toolbelt/CAS, project Toolchain locks and offline bundles | .px parsing policy, format-specific writer internals or app runtime store |
+| [packagex](https://github.com/Package-X/packagex) | .px parser/linter, project semantics, resolved build IR, resource inventory, feature lowering, build graph, installer runtime, scope policy, protected helper authorization, updater lifecycle and rollback | Global SDK package store or every native format writer |
+| [sdk](https://github.com/Package-X/sdk) | Target SDK packages, format writers/readers/validators, transactional edit adapters, Electron detection/payload separation, protected runtime-reference encoding, helper integration adapters, payload optimization and build-side reports | .px interpretation, permanent package manager or end-user install/update policy |
+| [packx](https://github.com/Package-X/packx) | Permanent shim/CLI, Engine routing, SDK acquisition, signed catalog resolution, compatibility, Toolbelt/CAS, project Toolchain locks and offline bundles | .px parsing policy, format-specific writer internals, end-user app installation or Electron runtime acquisition |
 
 Detailed contracts:
 - [SDK Build Contract](https://github.com/Package-X/sdk/blob/main/plan/architecture/build-contract.md)
@@ -121,7 +121,7 @@ The authoritative capability recipes live in the SDK repository's upstream integ
 | RPM | rpm crate | SDK creates package headers/payload; native rpm CLI validates and installs. The crate is not a full rpmbuild or RPM database replacement. |
 | AppImage | appimagetool ecosystem, uruntime, mkdwarfs; backhand for SquashFS-specific work | Use actual AppImage runtime/filesystem path. Do not treat backhand SquashFS as a drop-in for a DWARFS build. |
 | Flatpak | Official flatpak-builder, flatpak, OSTree utilities | SDK generates a pinned manifest and invokes an isolated Linux builder; do not implement OSTree repository/sandbox semantics from scratch. |
-| Electron | Official Electron layout, @electron/get, @electron/asar, Electron Fuses | SDK separates standard app payload from exact runtime descriptor; never binary-surgery an arbitrary electron.exe. |
+| Electron | Official Electron layout, @electron/get, @electron/asar, Electron Fuses, @electron/rebuild | SDK detects Electron, preserves the original app executable/layout, separates app payload from the exact runtime where the installer format permits it, and encodes a protected runtime reference into the payload. A restricted installer-embedded helper restores only the authorized runtime into named layout slots. No PackageX launcher, end-user PackageX.exe or global runtime store. |
 | PDC | fastcdc, zstd, approved digest crate | SDK chunks/compresses unique payload bytes; Engine retains canonical uncompressed inventory and native writers retain native semantics. |
 
 ### 5.1 License and commercial-dependency boundary
