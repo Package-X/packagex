@@ -64,3 +64,68 @@ While `-packagex-detail` inspects the **package itself**, `--dry-run` evaluates 
 - **Unified Update Feed:** `packx build` emits a signed `update-feed.json` listing latest versions, OS/arch targets, full installers, and delta patches.
 - **Uncompressed-Stream Binary Diffs:** Because diffing two *already-compressed* installers fails (a 1-byte change shifts the compressed stream), PackageX computes `zstd --patch-from` deltas against the **uncompressed deterministic payload stream** (or per-file) between release `N-1` and `N`, then compresses the resulting patch—turning a 150 MB release into a ~2 MB delta download.
 - **Per-User & Service-Assisted Updates:** Supports silent background updates without admin prompts.
+
+
+## 7. Electron immutable application/runtime generations
+
+An optimized Electron install is one application generation containing the app payload and the exact runtime that app was built and signed against. The runtime is app-local and scope-local; it is not registered in a shared machine runtime store.
+
+### First installation
+
+1. Authenticate the installer and its protected Electron control block.
+2. Verify target OS, architecture, exact Electron version/build, pinned URL, expected size, full artifact SHA-256 and runtime inventory identity.
+3. Download to a bounded same-volume staging area; do not execute or launch the artifact.
+4. Verify the complete archive digest and applicable OS publisher signatures.
+5. Safely extract with path traversal, unsafe-link, collision, file-count and expanded-size checks.
+6. Restore runtime files to their original relative paths in the application staging generation.
+7. Verify the reconstructed app/runtime inventory and applicable app signatures.
+8. Commit the full generation through the normal transaction journal. Launch is allowed only after required verification succeeds.
+
+If any step fails, discard/quarantine staging and leave an existing installation untouched.
+
+### Background update preparation
+
+The updater compares the current installed generation with the newest authenticated application release:
+
+- If the exact Electron runtime identity is unchanged, update only the application payload.
+- If Electron changes, download and verify only the exact runtime required by that release.
+- Keep the currently installed app and runtime operational while the new payload/runtime are downloaded, verified and staged.
+- Retain at most one pending update generation. If a newer release supersedes it, discard the obsolete pending payload/runtime and stage only the newest applicable release.
+- Never replace runtime files currently loaded by a running app.
+
+### Commit and rollback
+
+Once the application exits:
+
+1. Acquire the application update lock and re-check the current generation identity.
+2. Complete any remaining pre-commit checks.
+3. Use a same-volume transaction to switch the application payload and runtime together. The journal must identify old/new generation IDs and exact runtime identities.
+4. Start the new generation and run the configured health check.
+5. Mark the new generation healthy only after the check succeeds.
+6. Remove old generation files and rollback data only after the health-check/retention policy allows cleanup.
+
+On failure, restore the previous complete generation. Do not combine a new application payload with an old incompatible Electron runtime or vice versa.
+
+The installed runtime is a dependency of the current application, not a cache. The one pending runtime is temporary update staging. PackageX does not retain every previous Electron release or create a global user/machine Electron cache.
+
+## 8. Scope-aware transaction roots
+
+The Engine resolves the selected install scope before the transaction begins. Every path is passed as a typed logical destination rather than re-derived from an untrusted script or string.
+
+- Per-user app, updater, staging, journal and rollback data remain inside user-owned application/support locations.
+- Machine-wide app, updater, staging, journal and rollback data use protected machine-owned locations.
+- A machine-wide updater must not load its update policy, executable, plugins or scripts from user-writable directories before elevated writes.
+- User documents, preferences and user-specific mutable data are not moved into a machine-owned directory merely because the executable is machine-wide.
+- A scope change is an explicit migration with a separate rollback plan, not an ordinary version update.
+
+## 9. Electron transaction acceptance
+
+- [ ] Running Electron files are never overwritten while in use.
+- [ ] The currently installed app/runtime remains operational while the next generation is prepared.
+- [ ] At most one pending Electron runtime is retained.
+- [ ] A same-runtime update does not download Electron again.
+- [ ] App payload and runtime are committed as one generation.
+- [ ] The old generation is retained until the new one passes health checks.
+- [ ] Failed verification or health checks restore the previous generation.
+- [ ] Per-user and machine-wide transaction roots have correct ownership and permissions.
+- [ ] No global end-user Electron runtime store or reference counter exists.
