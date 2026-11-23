@@ -40,12 +40,14 @@ PackageX **never patches or modifies the user's compiled application binary** (w
 
 Developers can customize or theme the updater UI using the exact same `.pxs` schema compiler (`[updater].ui = "./updater.pxs"`), supporting `UpdateAvailablePage`, `DownloadingUpdatePage`, and `CriticalUpdatePage` across WinLook `wl_ui`, AppKit, GTK/Qt, Tauri 2, and `ratatui` TUI.
 
-## 5. Cross-OS 24-Hour Per-User Background Schedulers (Zero UAC / Zero `sudo`)
+## 5. Scope-Aware Background Update Schedulers
 
-To check for updates periodically (e.g., every 24h) without requiring admin privileges or polluting login-only Registry keys, `px-runtime` registers each OS's native per-user scheduler under `<app_id>` (tracked by the rollback journal and removed cleanly on uninstall):
-- **Windows:** Per-user Task Scheduler job (`OnSchedule`, interval from `[updater].check_interval_hours`, default `24`).
-- **macOS:** Per-user `launchd` LaunchAgent (`~/Library/LaunchAgents/<app_id>.updater.plist`, `StartInterval = 86400`).
-- **Linux:** Per-user `systemd --user` timer (`~/.config/systemd/user/<app_id>-updater.timer`, `OnCalendar=daily`).
+To check periodically (default example: every 24h), `px-runtime` registers a native scheduler under the selected installation scope. All registrations are tracked by the rollback journal and removed cleanly on uninstall.
+
+- **Per-user:** Windows Task Scheduler task for the current account; macOS LaunchAgent in `~/Library/LaunchAgents`; Linux `systemd --user` timer in the user's configuration.
+- **Machine-wide:** Windows machine task/service with protected task definition and updater path; macOS system LaunchDaemon in `/Library/LaunchDaemons` when the package and authorization model support it; Linux system `systemd` unit/timer under administrator-owned configuration.
+- The machine-wide scheduler must execute only a machine-protected updater binary and load only authenticated update policy/configuration. It must not elevate a per-user updater or execute a user-writable replacement updater.
+- Scheduler privileges and registration support are declared per target format. A format unable to register a scope-correct scheduler must report that limitation; it must not silently switch to a per-user task.
 
 
 ## 6. Electron application updates: immutable generations
