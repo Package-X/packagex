@@ -1,6 +1,6 @@
 # PackageX (`packx`)
 
-**A Cross-OS Rust + Crate-Level SIMD ASM Installer Assembly Engine, Toolbelt, and Runtime.**
+**A Cross-OS Rust installer assembly engine, developer Toolbelt, and embedded installer runtime.**
 
 PackageX builds native, white-labeled installers for **all modern operating systems**—Windows (`.exe`, `.msi`, `.msix`, WinGet), macOS (`.pkg`, `.dmg`, Homebrew Cask), and Linux (`.deb`, `.rpm`, `AppImage`, `Flatpak`)—from a single declarative `.px` manifest, outclassing legacy script-heavy builders and Windows-only packagers like Master Packager Dev (MPDEV).
 
@@ -40,12 +40,12 @@ Explore `/plan/` for the complete v3 technical specifications:
 - [`plan/architecture/toolbelt-and-sdk-cas.md`](plan/architecture/toolbelt-and-sdk-cas.md) — `packx toolbelt`, blocking lockfile, atomic CAS extraction, `--offline`/`.pxbelt`, and 32-char SHA-256 ref-counting
 - [`plan/architecture/assembly-engine.md`](plan/architecture/assembly-engine.md) — Cross-OS binary layouts, Authenticode-safe PE footer discovery, reproducible builds, and signing/SBOM
 - [`plan/architecture/runtime-and-rollback.md`](plan/architecture/runtime-and-rollback.md) — Same-volume atomic staging, rollback journal, white-label zero-trace uninstalls, `--dry-run`, `packx test` sandbox, and uncompressed `zstd` delta updater
-- [`plan/architecture/security-and-sealing.md`](plan/architecture/security-and-sealing.md) — Multi-Slot Envelope Encryption (`Argon2id` + `XChaCha20-Poly1305`), Recovery Key / X25519 Company Public Key slots, sealed `-packagex-detail`, local CA signing, and white-label stealth rules
-- [`plan/architecture/updater-and-launcher.md`](plan/architecture/updater-and-launcher.md) — Flexible JSON-path + SemVer auto-updater, white-label launcher shim, custom launcher sandbox probe, and 24h per-user schedulers
+- [`plan/architecture/installation-scope.md`](plan/architecture/installation-scope.md) — Per-user and machine-wide install scope across Windows, macOS and Linux\n- [`plan/architecture/security-and-sealing.md`](plan/architecture/security-and-sealing.md) — Multi-Slot Envelope Encryption (`Argon2id` + `XChaCha20-Poly1305`), Recovery Key / X25519 Company Public Key slots, sealed `-packagex-detail`, local CA signing, and white-label stealth rules
+- [`plan/architecture/updater-and-launcher.md`](plan/architecture/updater-and-launcher.md) — Signed update feeds, generic launcher policy, Electron no-launcher behavior, one-pending-runtime updates, embedded helper boundary and scope-aware scheduling
 - [`plan/architecture/product-and-editions.md`](plan/architecture/product-and-editions.md) — Open-core free indie/OSS features vs. paid enterprise fleet/compliance tier
 - [`plan/architecture/sdk-and-crate-map.md`](plan/architecture/sdk-and-crate-map.md) — High-level crate shortlist, Apple MPL-2.0 vendoring and target capability matrix
 - [`plan/architecture/upstream-implementation-map.md`](plan/architecture/upstream-implementation-map.md) — How Engine, SDK and PackX integrate concrete upstream projects, target writers and validation
-- [`plan/specs/px-format-spec.md`](plan/specs/px-format-spec.md) — Complete `.px` TOML schema, `elevate`, `<section>.<os>.<key>` step namespacing + `phase` ordering, `[security]`, and reproducible SHA-256 pinning
+- [`plan/specs/px-format-spec.md`](plan/specs/px-format-spec.md) — Complete `.px` TOML schema, `scope`, `scope_default`, `elevate`, `<section>.<os>.<key>` step namespacing + `phase` ordering, `[security]`, and reproducible SHA-256 pinning
 - [`plan/specs/script-s-px-spec.md`](plan/specs/script-s-px-spec.md) — `<name>.s.px` Python-syntax scripting -> WASM-first (`wasmi`) execution and sentinel-marked Hook SDK
 - [`plan/specs/ui-schema-and-winlook.md`](plan/specs/ui-schema-and-winlook.md) — `.pxs` (PackageX Schema) compiler -> WinLook `wl_ui` / AppKit / GTK-Qt / Tauri 2 / `ratatui` TUI + `password_prompt` state
 - [`plan/specs/cli-detail-spec.md`](plan/specs/cli-detail-spec.md) — `packx` CLI (`build`, `check`, `test`, `sign init-ca`, `belt`), Windows `AttachConsole`, sealed `-packagex-detail` base64 output, and `--dry-run`
