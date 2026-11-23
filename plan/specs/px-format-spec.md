@@ -21,33 +21,36 @@ All path strings support case-insensitive `$token$` interpolation across Windows
 ## 2. Installation Scope ([package].scope)
 
 - scope = `user`: install for the invoking account; this is the default.
-- scope = `machine`: install in a machine-managed location for all accounts where the selected target supports it.
-- scope = `choice`: offer only scope choices declared by the selected SDK target capability; `scope_default` sets the preselected choice.
-- Scope is separate from `elevate`. Scope determines ownership/registration; elevation determines privilege requirements.
-- A denied machine-wide authorization never silently falls back to per-user. Scope changes during updates require an explicit migration.
-- Native target differences are defined in [Installation Scope](../architecture/installation-scope.md).
+- scope = `machine`: install in a machine-managed location for all accounts where the selected target format supports it.
+- scope = `choice`: expose only the scopes declared by the selected target's SDK capability; `scope_default` preselects the default.
+- `scope_default` is valid only with `scope = "choice"`; otherwise it is ignored/rejected by schema validation.
+- Scope determines installation ownership and registration. It is separate from `elevate`, which controls permission requirements.
+- A denied machine-wide authorization never silently falls back to per-user. Changing scope during an update requires an explicit migration.
+- Native target differences and the initial format capability matrix are defined in [Installation Scope](../architecture/installation-scope.md).
 
-## 3. Explicit Elevation (`[package].elevate`)
+## 3. Explicit Elevation ([package].elevate)
 
-- `elevate = false`: Strictly per-user install—never prompts for UAC/sudo. `packx check` fails at build time if any step writes to `$programfiles$`, `HKLM`, `/usr/local`, `/opt`, or registers a `system-service`.
-- `elevate = true`: Always elevates at install start via runtime self-elevation (`ShellExecuteW("runas")` / `sudo`), while keeping the Windows PE manifest `asInvoker` so `-packagex-detail` and `--dry-run` stay UAC-free.
-- `elevate = "auto"`: Infers elevation from `scope` and resolved paths.
+- `elevate = false`: forbid privileged operations. A per-user installation is the usual case, but scope remains a separate field. `packx check` rejects any selected operation that requires machine privilege.
+- `elevate = true`: permit/request the privilege required by the resolved operation plan. It does not by itself convert a per-user install into machine-wide scope.
+- `elevate = "auto"`: request elevation only when a selected scope/operation requires it. Resolve scope first, then calculate privilege.
+- The Windows PE manifest remains `asInvoker` for inspection and dry-run. Elevation occurs only after inspection flags are ruled out and the required operation is known.
+- See [Installation Scope](../architecture/installation-scope.md) for the scope/elevation compatibility matrix.
 
-## 3. OS-Namespaced Steps (`<section>.<os>.<key>`) & Ordering
+## 4. OS-Namespaced Steps (`<section>.<os>.<key>`) & Ordering
 
 To prevent OS-specific scripts (`.ps1`, `.exe`, `powershell`, `registry`) from accidentally breaking cross-OS manifests:
 - **`[[assembly.steps]]`** (no middle `.os.`): Strictly **cross-OS general** steps (`extract`, WASM `script`, generic `dependency`). Putting a `.ps1`, `.exe`, `powershell`, or Windows `registry` step here is an immediate `packx check` compile error.
 - **`[[assembly.windows.steps]]`**, **`[[assembly.macos.steps]]`**, **`[[assembly.linux.steps]]`**: OS-scoped steps compiled only for that target OS.
 - **Deterministic Step Ordering (`phase` + `before`/`after`):** Because general and OS-scoped steps can mix, every step accepts an optional `phase = "pre" | "install" | "post"` (default `"install"`) and optional `before = "<step_id>"` / `after = "<step_id>"` anchors so `px-spec` builds an unambiguous execution graph.
 
-## 4. Pre-Set Templates (`[package].template`)
+## 5. Pre-Set Templates (`[package].template`)
 
 - **`desktop-app`:** System/user app directory, Start Menu / `.app` / `.desktop` shortcuts, white-label uninstaller.
 - **`cli-path-app`:** Defaults `elevate = false` & `scope = "user"`, exports `bin_exports` to `$instdir$/bin`, registers user `$PATH`.
 - **`hybrid-app`:** Combines GUI shortcuts (`app_exe`) with CLI `$PATH` registration (`bin_exports`).
 - **`system-service`:** Configures Windows Service / macOS `launchd` / Linux `systemd` (requires `elevate = true`) with port/privilege checks in `--dry-run`.
 
-## 5. Complete Schema Reference
+## 6. Complete Schema Reference
 
 ```toml
 [package]
@@ -96,9 +99,9 @@ priority_path = "$.release.priority" # "critical" | "normal" | "background"
 download_url_path = "$.release.url"
 sha256_path = "$.release.sha"        # Mandatory in production (`packx build`); warns in `packx test`
 delta_patching = "zstd"              # Uncompressed-stream zstd binary delta patches
-launcher = "auto"                    # "auto" (white-label shim) | "custom" (verified by `packx test` probe)
+launcher = "auto"                    # Generic launcher policy; Electron optimization preserves the original Electron executable
 ui = "./updater.pxs"                 # Optional editable `.pxs` / HTML updater UI
-check_interval_hours = 24            # Cross-OS per-user scheduler (Task Scheduler / LaunchAgent / systemd --user)
+check_interval_hours = 24            # Scheduler follows package.scope: per-user or protected machine-wide
 
 [signing]
 windows = "local-ca"                 # "local-ca" | "signtool" | "osslsigncode" | "azure-trusted-signing"
