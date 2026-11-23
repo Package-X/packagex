@@ -18,7 +18,16 @@ All path strings support case-insensitive `$token$` interpolation across Windows
 
 > **Trailing Wildcard Convention (`/*`):** Ending `install_dir` with `/*` marks the directory as an isolated package root managed exclusively by the app's uninstaller for clean removal.
 
-## 2. Explicit Elevation (`[package].elevate`)
+## 2. Installation Scope ([package].scope)
+
+- scope = `user`: install for the invoking account; this is the default.
+- scope = `machine`: install in a machine-managed location for all accounts where the selected target supports it.
+- scope = `choice`: offer only scope choices declared by the selected SDK target capability; `scope_default` sets the preselected choice.
+- Scope is separate from `elevate`. Scope determines ownership/registration; elevation determines privilege requirements.
+- A denied machine-wide authorization never silently falls back to per-user. Scope changes during updates require an explicit migration.
+- Native target differences are defined in [Installation Scope](../architecture/installation-scope.md).
+
+## 3. Explicit Elevation (`[package].elevate`)
 
 - `elevate = false`: Strictly per-user install—never prompts for UAC/sudo. `packx check` fails at build time if any step writes to `$programfiles$`, `HKLM`, `/usr/local`, `/opt`, or registers a `system-service`.
 - `elevate = true`: Always elevates at install start via runtime self-elevation (`ShellExecuteW("runas")` / `sudo`), while keeping the Windows PE manifest `asInvoker` so `-packagex-detail` and `--dry-run` stay UAC-free.
@@ -48,7 +57,8 @@ engine = "2.4"                       # Pinned `packx toolbelt` engine version
 publisher = "Kastrick"
 app_id = "com.kastrick.mysoftware"   # Stable ID (UUIDv5 for MSI / bundle ID for macOS / uninstaller name)
 template = "hybrid-app"              # "desktop-app" | "cli-path-app" | "hybrid-app" | "system-service"
-scope = "user"                       # "user" | "machine"
+scope = "user"                       # "user" | "machine" | "choice"
+scope_default = "user"               # Required only for scope = "choice"
 elevate = false                      # true | false | "auto" (PE manifest always stays `asInvoker`)
 targets = ["exe", "msi", "dmg", "pkg", "deb", "appimage"]
 app_exe = "bin/mysoftware"
