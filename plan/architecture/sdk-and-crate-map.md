@@ -35,7 +35,7 @@ Because native OS packages (`.msi`, `.deb`, `.rpm`, `.pkg`, `.msix`) are execute
 | **AEAD Password Sealing + Recovery** | Native | No | No | No | No | Encrypted DMG (future) | No | No | Native (if stub) | No |
 | **`.s.px` WASM Hooks** | Native (`wasmi`) | Lowered (CustomAction) | Warn (AppContainer) | No | Lowered (`postinstall`) | No | Stanza | Lowered (`postinst`/`prerm`) | Native (if stub) | Sandbox-limited |
 | **Same-Volume Atomic Rollback** | Native | Native (`msiexec` TX) | Native (AppX) | Delegates | OS receipt | Drag-drop | Cask | OS pkg mgr | Self-contained | OSTree |
-| **`elevate = true / false`** | Native (runtime) | `ALLUSERS` property | User-scoped | Manifest scope | `install-location` | User `/Applications` | User/Admin | Root (`dpkg`/`rpm`) | User (no root) | User or system |
+| **Install scope + `elevate`** | Per-user/machine helper paths | `ALLUSERS` / `MSIINSTALLPERUSER` | Per-user registration / all-user provisioning | Delegates to selected installer | Declared PKG domain | User copy / authorized `/Applications` copy | Prefix/installer policy | System package-manager scope | User image / optional common placement | `--user` / `--system` |
 | **`packx test` Desktop Sandbox** | Native | No | No | No | No | Native (mount) | No | No | Native | No |
 
 
@@ -65,7 +65,8 @@ The table above is the high-level dependency shortlist, not proof that each cand
 
 ### Cross-cutting
 
-- Electron app/runtime separation belongs to the SDK's px-electron component, with @electron/get/official release artifacts for exact runtime resolution and @electron/asar when ASAR creation/extraction is required.
+- Installation scope is a project-level `user` / `machine` / capability-gated `choice` policy, separate from `elevate`; see the [Engine Installation Scope architecture](installation-scope.md) and the [SDK target scope matrix](https://github.com/Package-X/sdk/blob/main/plan/architecture/installation-scope.md). Native format scope semantics must not be flattened into one generic privilege flag.
+- Electron app/runtime separation belongs to the SDK's px-electron component. The installer reference is an opaque authenticated payload control block and a restricted helper restores the exact runtime only on formats that permit it. No end-user runtime store or PackageX Electron launcher is introduced. See the [SDK Electron architecture](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md).
 - Payload deduplication can use fastcdc; compression can use streaming zstd. Pin chunker algorithm/version/parameters and codec settings; skip recompression when it does not reduce size.
 - Keep the Engine's canonical uncompressed resource inventory. SDK PDC representation is derived output and must reconstruct to original per-file hashes.
 - External builders/validators are SDK components with pinned versions, hashes, licenses and explicit install conditions; they are not ambient PATH dependencies.
