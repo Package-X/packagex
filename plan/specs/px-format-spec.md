@@ -81,7 +81,7 @@ publisher = "Kastrick"
 app_id = "com.kastrick.mysoftware"   # Stable ID (UUIDv5 for MSI / bundle ID for macOS / uninstaller name)
 template = "hybrid-app"              # "desktop-app" | "cli-path-app" | "hybrid-app" | "system-service"
 scope = "user"                       # "user" | "machine" | "choice"
-scope_default = "user"               # Required only for scope = "choice"
+# scope_default = "user"             # Set only when scope = "choice"
 elevate = false                      # true | false | "auto" (PE manifest always stays `asInvoker`)
 targets = ["exe", "msi", "dmg", "pkg", "deb", "appimage"]
 app_exe = "bin/mysoftware"
