@@ -74,3 +74,35 @@ Every build pipeline supports enterprise trust artifacts via `packx build --sign
 - **Linux:** Detached and inline GPG signing for `.deb` / `.rpm` repositories.
 - **Supply-Chain Artifacts:** Auto-generates `.sha256` checksum files and an **SBOM** in **SPDX** or **CycloneDX** JSON format.
 - **MDM Metadata:** Emits deployment descriptors for Microsoft Intune/SCCM (Windows), Jamf Pro/Kandji (macOS), and Ansible/Fleet (Linux).
+
+
+## 6. Protected payload blocks and the embedded restricted installer helper
+
+The custom EXE assembly path can carry a target-specific installer helper and protected operation-plan blocks inside the installer. The helper is a capability-limited part of the installer's own stub/container, not a separately installed PackageX Runtime, package manager or end-user PackageX.exe.
+
+For Electron optimization, the SDK supplies:
+- application-owned payload resources;
+- exact Electron runtime archive identity and expected hashes;
+- a logical runtime reference encoded into an opaque authenticated control block beside the application payload;
+- named destination slot IDs and the layout identity used by the target writer.
+
+The PE writer maps logical slot IDs to the final overlay payload index. The helper resolves those slots only through the authenticated layout. The reference never supplies arbitrary raw EXE offsets and no helper operation patches the running installer executable in place.
+
+The build-time logical source descriptor can be JSON, but the assembled installer must not expose it as a loose readable JSON file. The protected control block is authenticated and bound to the final payload layout and publisher/install authorization identity. Opaque/default encryption protects casual inspection; signature verification, AEAD authentication, exact pinned artifact digests, OS-native signature checks and constrained write capabilities provide the integrity/authorization guarantees. Do not claim encryption alone prevents RCE or hides data from a determined local machine owner.
+
+The helper may download the exact version-pinned Electron archive, verify expected size/full SHA-256 and applicable native publisher signatures, safely extract it, verify the extracted inventory, then write only to declared slots in the active same-volume staging tree. It rejects arbitrary URLs, paths, offsets, scripts, executable launch requests and writes outside the active transaction. It must not execute downloaded material as installation instructions.
+
+For MSI, helper execution must remain inside an installer-compatible transaction/rollback design. For MSIX, macOS signed app bundles, drag-and-drop DMGs, AppImage and Flatpak, use the format's declared capability; do not mutate sealed/immutable package contents or assume a helper can run during ordinary install/launch. The SDK Electron capability matrix is authoritative.
+
+## 7. Installation-scope policy integration
+
+The Engine's resolved per-user/machine-wide scope is carried into the assembly request. The writer must report and preserve its native semantics rather than equating an install directory with scope.
+
+- Custom EXE helper resolves destinations and permission requirements using the authenticated operation plan.
+- MSI uses Windows Installer installation context; MSI authoring must support/test both contexts when advertised.
+- MSIX reports per-user registration and enterprise all-user provisioning as distinct behaviors.
+- macOS PKG declares supported installer domains; DMG copy operations are not represented as helper-driven installs.
+- DEB/RPM use system package-manager semantics. AppImage and Flatpak declare their respective user/system behavior.
+
+The [Installation Scope architecture](installation-scope.md) owns the normalized policy and capability table. The [Electron SDK architecture](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md) owns app/runtime separation and format-specific restoration support.
+
