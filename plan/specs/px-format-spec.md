@@ -50,7 +50,7 @@ To prevent OS-specific scripts (`.ps1`, `.exe`, `powershell`, `registry`) from a
 - **`hybrid-app`:** Combines GUI shortcuts (`app_exe`) with CLI `$PATH` registration (`bin_exports`).
 - **`system-service`:** Configures Windows Service / macOS `launchd` / Linux `systemd` (requires `elevate = true`) with port/privilege checks in `--dry-run`.
 
-## 5. Electron Detection and Payload Optimization
+## 6. Electron Detection and Payload Optimization
 
 The SDK reports Electron detection to the Engine. The Engine owns the interactive prompt and resolves this project policy before the target SDK build begins.
 
@@ -70,7 +70,7 @@ optimization = "prompt"            # "prompt" | "enabled" | "disabled"
 
 The format-specific support table and helper security requirements live in the SDK [Electron architecture](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md).
 
-## 6. Complete Schema Reference
+## 7. Complete Schema Reference
 
 ```toml
 [package]
