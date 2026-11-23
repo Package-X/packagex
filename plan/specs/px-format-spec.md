@@ -1,6 +1,6 @@
 # `.px` Package Manifest Specification
 
-The `.px` format uses **TOML 1.0 syntax** extended with **engine version pinning**, **explicit `elevate` control**, **OS-namespaced steps (`<section>.<os>.<key>`)**, **cross-OS path tokens**, **pre-set templates**, and **AEAD password sealing**.
+The `.px` format uses **TOML 1.0 syntax** extended with **engine version pinning**, **installation scope**, **Electron optimization policy**, and **explicit `elevate` control**, **OS-namespaced steps (`<section>.<os>.<key>`)**, **cross-OS path tokens**, **pre-set templates**, and **AEAD password sealing**.
 
 ## 1. Cross-OS Built-In Path Tokens
 
@@ -50,6 +50,26 @@ To prevent OS-specific scripts (`.ps1`, `.exe`, `powershell`, `registry`) from a
 - **`hybrid-app`:** Combines GUI shortcuts (`app_exe`) with CLI `$PATH` registration (`bin_exports`).
 - **`system-service`:** Configures Windows Service / macOS `launchd` / Linux `systemd` (requires `elevate = true`) with port/privilege checks in `--dry-run`.
 
+## 5. Electron Detection and Payload Optimization
+
+The SDK reports Electron detection to the Engine. The Engine owns the interactive prompt and resolves this project policy before the target SDK build begins.
+
+~~~toml
+[electron]
+optimization = "prompt"            # "prompt" | "enabled" | "disabled"
+~~~
+
+- Omitted or `prompt`: show the recommended yes/no prompt when the build is interactive. The affirmative choice enables the SDK's default Electron optimization profile.
+- In a non-interactive build, `prompt` must not wait for terminal input. It fails with an actionable diagnostic requiring an explicit `enabled` or `disabled` setting/CLI override.
+- `enabled`: request app-only Electron payload optimization. The selected target format must advertise protected-reference and restricted-helper support. If it cannot safely reconstruct the runtime, fail the target build rather than silently changing the request.
+- `disabled`: preserve the complete original Electron distribution, including its runtime.
+- Uncertain Electron detection never removes runtime files, regardless of the selected default profile.
+- Electron optimization preserves the original application executable and relative layout. It does not add a PackageX launcher.
+- The SDK embeds the exact runtime reference as an opaque authenticated control block alongside the payload, not as a loose readable JSON sidecar. The embedded helper restores the runtime only to authenticated logical slots declared by the SDK writer.
+- The exact version, target, URL, expected size, SHA-256, runtime inventory and ABI identity are pinned at build time. No floating latest URL is resolved by the installer.
+
+The format-specific support table and helper security requirements live in the SDK [Electron architecture](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md).
+
 ## 6. Complete Schema Reference
 
 ```toml
@@ -75,6 +95,9 @@ compression = "zstd"                 # "zstd" (default) | "lzma" | "none"
 compression_level = 19
 reproducible = true                  # Enforces sorted files, frozen timestamps, relative paths, and sha256 dep pins
 generate_sbom = "cyclonedx"          # "cyclonedx" | "spdx" | "none"
+
+[electron]
+optimization = "prompt"            # "prompt" | "enabled" | "disabled"
 
 [security]
 encryption = "none"                  # "none" | "password" (Argon2id + XChaCha20-Poly1305 single-blob sealing)
