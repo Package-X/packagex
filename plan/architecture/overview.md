@@ -99,3 +99,29 @@ When an end-user or IT admin runs an assembled self-contained installer:
 	- Detects display server availability. Launches native OS toolkit (WinLook `wl_ui`, AppKit, GTK/Qt) or Tauri 2 WebView; automatically falls back to `ratatui` TUI or headless CLI over SSH/Docker/CI.
 6. **Transactional Execution (`px-runtime`):**
 	- Extracts into a **same-volume hidden staging directory** (or `Desktop/<package_name>/` in `packx test` sandbox mode), verifies every file against the compile-time SHA-256 manifest, executes `.s.px` WASM hooks in `wasmi`, commits atomically, updates `$PATH`/services, and writes the white-labeled uninstaller. Any failure triggers reverse journal rollback.
+
+
+## 5. Installation Scope, Protected Helper and Electron Runtime Policy
+
+The Engine exposes a unified installation-scope policy across Windows, macOS and Linux: per-user by default, machine-wide when explicitly selected, and an optional installer choice only where the target-format capabilities support it. Scope is separate from `elevate`. The Engine resolves scope, privilege requirements, destinations, scheduler ownership and rollback paths before the SDK writer assembles a target artifact.
+
+The installer contains its own small, restricted helper when the selected format supports helper execution. This helper reads the installer's authenticated protected operation plan and performs only the allowed operations. It is not a global PackageX Runtime manager, a general script shell, a package manager, or an end-user PackageX.exe.
+
+For supported Electron targets:
+- SDK detection identifies the original Electron executable, application payload, exact runtime and platform layout.
+- The default build prompt asks whether to apply recommended Electron payload optimization. Declining or uncertain detection preserves the complete original distribution.
+- The SDK encodes the exact runtime reference into an opaque authenticated payload control block beside the app payload. The final installer does not expose a loose readable .ref.json sidecar.
+- The helper downloads and verifies only the exact build-time-pinned runtime and restores it to named logical payload slots in the transaction staging tree.
+- The application keeps its original executable and layout. No PackageX Electron launcher is inserted.
+- Updates keep the current app/runtime generation running while one next-release runtime may be downloaded and verified. After app exit, the updater commits app and runtime together, health-checks, and retains rollback until success.
+- No global end-user Electron cache/store/service is created. The SDK may keep its own verified developer-side artifact cache.
+
+Native format limits remain authoritative. The SDK capability handshake declares which formats safely support the restricted helper, installation scope and Electron runtime restoration. The Engine rejects unsupported combinations or uses a bundled runtime only when the developer has explicitly allowed that fallback.
+
+Source plans:
+- [Installation Scope](installation-scope.md)
+- [Protected installer payload and helper](assembly-engine.md)
+- [Updater and Electron generations](updater-and-launcher.md)
+- [SDK Electron adapter](https://github.com/Package-X/sdk/blob/main/plan/architecture/electron.md)
+- [SDK installation-scope matrix](https://github.com/Package-X/sdk/blob/main/plan/architecture/installation-scope.md)
+
