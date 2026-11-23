@@ -76,6 +76,8 @@ The block carries:
 - Application payload identity, ABI/native-module requirements and fuse/customization profile.
 - Verification policy, license inventory, schema version and installer-layout identity.
 
+The opacity guarantee applies to PackageX's internal Electron reference and operation/layout plan, not every byte of the outer native package. MSI properties/tables, MSIX package identity/manifest, PE headers and publisher/signature metadata may remain readable because the operating system needs them for installation, deployment and trust decisions. Do not claim that a native MSI/MSIX or signed executable is wholly unreadable unless a separate whole-payload sealing mode is enabled and compatible with that format.
+
 ### Integrity, authorization and confidentiality are separate
 
 1. **Publisher authorization:** the operation plan is signed by the developer/build signing identity. The verifier key is bound to the trusted installer identity; an arbitrary key supplied by a downloaded manifest is never accepted as its own trust root.
