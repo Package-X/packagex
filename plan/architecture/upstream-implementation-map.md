@@ -176,7 +176,7 @@ Do not attempt every format simultaneously. Prove the Engine/SDK/PackX integrati
 5. **macOS .dmg/signing:** build image, sign/notarize/staple and run native macOS acceptance tools.
 6. **Linux package slice:** create DEB and RPM from one canonical resource inventory, verify with native tools and disposable distro containers.
 7. **AppImage/Flatpak:** generate and run on supported Linux baselines.
-8. **Electron:** produce app-only payload/runtime descriptor, download/verify exact runtime, launch in bundled and managed modes.
+8. **Electron:** validate SDK detection, app-only payload construction, protected runtime-reference encoding, restricted-helper restoration on a supported installer format, and app/runtime generation updates; retain bundled output for formats that cannot safely reconstruct signed or immutable packages.
 9. **PDC:** benchmark whole-file dedup, FastCDC and Zstandard separately before combining.
 
 Every proof-of-concept produces a fixture/corpus, exact upstream revision/feature flags, license report, native validation output, accepted capability statement and documented limitations.
